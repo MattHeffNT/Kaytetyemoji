@@ -1,129 +1,72 @@
 import { useEffect, useState, useRef } from 'react';
 import { IonRow } from '@ionic/react';
 
-const AudioRow: React.FC<any> = ({ emoji, icon, onClose, onAudioLoaded }) => {
+type Track = 'audio' | 'phrase';
+
+const AudioRow: React.FC<any> = ({ emoji, icon }) => {
   const IonIcon = icon;
-  const audioRow = useRef<any>();
-  const phraseRow = useRef<any>();
-
-  let playEvent = useRef<HTMLAudioElement>(new Audio(emoji.audio));
-  let playPhraseEvent = useRef<HTMLAudioElement>(new Audio(emoji.phrases));
-
   const phrase = emoji.phrases;
 
-  let [isPlaying, setIsPlaying] = useState(false);
-  let [phrasePlaying, setPhrasePlaying] = useState(false);
+  // one Audio element per track, created once per emoji (none if the emoji has no phrase)
+  const tracks = useRef<Record<Track, HTMLAudioElement | null>>({ audio: null, phrase: null });
 
-  const playAudio = (e: any) => {
-    const audioPhrase = e.currentTarget.id;
+  // which track is playing, if any - drives the stop icon, highlight and ghosting
+  const [playing, setPlaying] = useState<Track | null>(null);
 
-    // toggle the current play state
-    let prevValue: any;
-    // toggle play/ pause
-    // grab previous value when state updated, which we can use to keep track
-    if (audioPhrase === 'audio') {
-      prevValue = isPlaying;
-      setIsPlaying(true);
-      setIsPlaying(!prevValue);
-    } else if (audioPhrase === 'phrase') {
-      prevValue = phrasePlaying;
-      setPhrasePlaying(true);
-      setPhrasePlaying(!prevValue);
-    }
-    // check if not the previous value then play and on toggle, pause and reset audio
-    // then remove css class from icon
-    if (!prevValue) {
-      if (audioPhrase === 'audio') {
-        // play the Emoji audio
-        playEvent.current.play();
-        // change color of play icon to ochre yellow
-        audioRow.current.classList.add('audio-active');
-        // grey out the non-playing row
-        if (phrase) {
-          phraseRow.current.classList.add('ghost');
-        }
-      } else if (audioPhrase === 'phrase') {
-        playPhraseEvent.current.play();
-        // grey out the non-playing row
-        phraseRow.current.classList.add('audio-active');
-        audioRow.current.classList.add('ghost');
-      }
-    } else {
-      if (audioPhrase === 'audio') {
-        playEvent.current.pause();
-        playEvent.current.currentTime = 0;
-        audioRow.current.classList.remove('audio-active');
-        if (phrase) {
-          phraseRow.current.classList.remove('ghost');
-        }
-      } else {
-        playPhraseEvent.current.pause();
-        playPhraseEvent.current.currentTime = 0;
-        audioRow.current.classList.remove('ghost');
-        if (phrase) {
-          phraseRow.current.classList.remove('audio-active');
-        }
-      }
-    }
-
-    playEvent.current.onended = () => {
-      setIsPlaying(false);
-      audioRow.current.classList.remove('audio-active');
-      if (phrase) {
-        phraseRow.current.classList.remove('ghost');
-      }
+  useEffect(() => {
+    const create = (src?: string) => {
+      if (!src) return null;
+      const el = new Audio(src);
+      // reset the UI when playback finishes or the file fails to load
+      el.onended = () => setPlaying(null);
+      el.onerror = () => setPlaying(null);
+      return el;
     };
+    tracks.current = { audio: create(emoji.audio), phrase: create(emoji.phrases) };
 
-    playPhraseEvent.current.onended = () => {
-      setPhrasePlaying(false);
-      phraseRow.current.classList.remove('audio-active');
-      audioRow.current.classList.remove('ghost');
+    // cleanup: stop playback and release the media players (Android WebView limits how many can exist)
+    return () => {
+      Object.values(tracks.current).forEach((el) => {
+        if (!el) return;
+        el.onended = null;
+        el.onerror = null;
+        el.pause();
+        el.removeAttribute('src');
+        el.load();
+      });
+      tracks.current = { audio: null, phrase: null };
     };
+  }, [emoji.audio, emoji.phrases]);
+
+  const stop = (track: Track) => {
+    const el = tracks.current[track];
+    if (el) {
+      el.pause();
+      el.currentTime = 0;
+    }
   };
 
-  // cleanup
-  useEffect(() => {
-    // Ensure that the component is mounted
-    let isMounted = true;
+  // tapping the playing track stops it; tapping the other one switches to it
+  const toggle = (track: Track) => {
+    if (playing) stop(playing);
+    if (playing === track) {
+      setPlaying(null);
+      return;
+    }
+    const el = tracks.current[track];
+    if (!el) return;
+    setPlaying(track);
+    el.play().catch(() => setPlaying(null));
+  };
 
-    const cleanup = () => {
-      if (isMounted) {
-        // reset to default values
-        setIsPlaying(false);
-        setPhrasePlaying(false);
-
-        // audioRow
-        // and PhraseRow onlcick Event Listener remove
-
-        // Remove event listeners
-        if (playEvent.current) {
-          playEvent.current.pause();
-          playEvent.current.currentTime = 0;
-          playEvent.current.onended = null;
-        }
-        if (playPhraseEvent.current) {
-          playPhraseEvent.current.pause();
-          playPhraseEvent.current.currentTime = 0;
-          playPhraseEvent.current.onended = null;
-        }
-
-        isMounted = false;
-      }
-    };
-
-    return cleanup;
-  }, []);
+  const rowClass = (track: Track) =>
+    'iconRow' + (playing === track ? ' audio-active' : playing ? ' ghost' : '');
 
   return (
     <div>
       {/* Render the audio row */}
-      <IonRow
-        ref={audioRow}
-        onClick={() => playAudio({ currentTarget: { id: 'audio' } })}
-        className="iconRow"
-        id="audio"
-      >
-        {isPlaying ? (
+      <IonRow onClick={() => toggle('audio')} className={rowClass('audio')} id="audio">
+        {playing === 'audio' ? (
           // Render the stop icon when audio is playing
           <IonIcon name="stop-circle" className="modal-icon" size="large" />
         ) : (
@@ -135,13 +78,8 @@ const AudioRow: React.FC<any> = ({ emoji, icon, onClose, onAudioLoaded }) => {
 
       {/* Render the phrase audio row */}
       {phrase ? (
-        <IonRow
-          ref={phraseRow}
-          onClick={() => playAudio({ currentTarget: { id: 'phrase' } })}
-          className="iconRow"
-          id="phrase"
-        >
-          {phrasePlaying ? (
+        <IonRow onClick={() => toggle('phrase')} className={rowClass('phrase')} id="phrase">
+          {playing === 'phrase' ? (
             // Render the stop icon when phrase audio is playing
             <IonIcon name="stop-circle" className="modal-icon" size="large" />
           ) : (
