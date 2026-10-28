@@ -7,15 +7,16 @@ import shortid from 'shortid';
 import { App } from '@capacitor/app';
 import { useHistory, useLocation } from 'react-router';
 
+// lazy components must be defined outside the component, or they remount on every render
+const MyModal = lazy(() => import('./MyModal'));
+const Slides = lazy(() => import('./Slides'));
+
 const Home: React.FC = () => {
-  const MyModal = lazy(() => import('./MyModal'));
   const [emojisData, setEmojisData] = useState([]);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [searchText, setSearchText] = useState('');
   const [myModal, setMyModal] = useState({ isOpen: false });
   const [isOpen, setIsOpen] = useState(false);
-
-  const Slides = lazy(() => import('./Slides'));
 
   const isModalOpen = myModal.isOpen;
   // variables to map in the component

@@ -2,9 +2,11 @@ import './styles/Info.css';
 import { lazy, Suspense, useState } from 'react';
 import { IonContent } from '@ionic/react';
 
+// defined outside the component so it doesn't remount on every render
+const Slides = lazy(() => import('./Slides'));
+
 const Info: React.FC<any> = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const Slides = lazy(() => import('./Slides'));
 
   return (
     <IonContent>
