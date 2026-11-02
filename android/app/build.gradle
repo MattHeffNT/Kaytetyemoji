@@ -7,7 +7,7 @@ def keystoreProperties = new Properties()
 // Locally, signing comes from android/keystore.properties; in CI, from environment variables
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-} else {
+} else if (System.getenv('ANDROID_KEYSTORE_PATH')) {
     keystoreProperties['storeFile'] = System.getenv('ANDROID_KEYSTORE_PATH')
     keystoreProperties['storePassword'] = System.getenv('ANDROID_KEYSTORE_PASSWORD')
     keystoreProperties['keyAlias'] = System.getenv('ANDROID_KEY_ALIAS')
