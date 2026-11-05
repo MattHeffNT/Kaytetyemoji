@@ -22,9 +22,24 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Ionic App" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <style>
+      /* Full-screen splash artwork, shown before React loads and faded out from App.tsx */
+      #app-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        background: #d47732 url('%PUBLIC_URL%/assets/splash.webp') center / cover no-repeat;
+        transition: opacity 300ms ease-out;
+      }
+      #app-splash.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
   </head>
 
   <body>
+    <div id="app-splash"></div>
     <div id="root"></div>
   </body>
 </html>
