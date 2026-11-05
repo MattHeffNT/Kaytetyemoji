@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { IonApp, IonRouterOutlet, IonSplitPane, setupIonicReact } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import { Redirect, Route } from 'react-router-dom';
@@ -35,11 +35,20 @@ const Faq = lazy(() => import('./components/Faq'));
 const Team = lazy(() => import('./components/Team'));
 
 const App: React.FC = () => {
-  SplashScreen.hide();
-  SplashScreen.show({
-    showDuration: 1500,
-    autoHide: true,
-  });
+  // Android 12+ only allows an icon on a colour for the native launch splash,
+  // so the full artwork is a fixed overlay in index.html. Swap the native
+  // splash (plain orange) for the overlay straight away, keep the artwork up
+  // briefly, then fade it out.
+  useEffect(() => {
+    SplashScreen.hide({ fadeOutDuration: 200 });
+    const splash = document.getElementById('app-splash');
+    const fade = setTimeout(() => splash?.classList.add('hidden'), 1500);
+    const remove = setTimeout(() => splash?.remove(), 1900);
+    return () => {
+      clearTimeout(fade);
+      clearTimeout(remove);
+    };
+  }, []);
 
   // Define your routes
   const routes = [
